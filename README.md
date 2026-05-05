@@ -42,7 +42,9 @@ deadlock-defender/
 
 ## 📄 Technical Report
 
-Available in: `report/` folder (LaTeX source) or `docs/project_report.html` (HTML version)
+📥 **[Download PDF Report](report/CSE_323_project_report.pdf)**
+
+Also available in HTML: `docs/project_report.html`
 
 ---
 
