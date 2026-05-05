@@ -102,7 +102,7 @@ This keeps the system in a "safe state" where deadlock cannot occur.
 
 ### Visual Flow Diagram
 
-```
+```text
     +-------------------+
     |   Worker Process  |
     +-------------------+
@@ -150,6 +150,34 @@ This two-step checking ensures:
 - Resources are actually available
 - The system never enters an unsafe state
 - **Deadlock is prevented before it can happen**
+
+---
+
+## Safe Sequence (Key Idea of Banker's Algorithm)
+
+The most important concept in Banker's Algorithm is the **Safe Sequence**.
+
+**What is a Safe Sequence?**
+
+A safe sequence is an order in which all processes can complete without getting stuck. The system looks ahead and asks: "Is there an order where every process can finish?"
+
+**Example:**
+
+If processes can finish in this order:
+```
+P2 → P1 → P3
+```
+Then the system is **SAFE**.
+
+If no such order exists, the system is **UNSAFE** and the request is denied.
+
+**Why Does This Matter?**
+
+- The system doesn't just check current resources
+- It checks if there's a path to completion for ALL processes
+- Even with enough available resources, if no safe sequence exists → DENIED
+
+This is the "look-ahead" nature of Banker's Algorithm that prevents deadlock before it happens.
 
 ---
 
@@ -381,6 +409,39 @@ Type **1**, **2**, or **3** and press Enter.
 
 ---
 
+## System Architecture Summary
+
+The system consists of four main components working together:
+
+| Component | Role |
+|-----------|------|
+| **Worker Processes** | Generate resource requests |
+| **Shared Memory** | Stores system state (allocation, max, need, available) |
+| **Manager Process** | Controls allocation and runs Banker's Algorithm |
+| **Semaphore** | Ensures safe concurrent access to shared memory |
+
+**Flow:**
+1. Workers write their requests to shared memory
+2. Manager reads requests and checks safety using Banker's Algorithm
+3. Decision is written back to shared memory
+4. Workers read the decision and proceed accordingly
+
+---
+
+## Why Command-Line (CLI) Application?
+
+This project uses a command-line interface instead of a GUI:
+
+- **Focus on OS-level logic** — Direct interaction with system calls (fork, shmget, sem_init)
+- **Avoid UI complexity** — No time spent on graphics, menus, or mouse handling
+- **Direct system call exposure** — Students can see exactly what Linux syscalls are being used
+- **Better for demonstrating IPC** — Clear view of inter-process communication and synchronization
+- **Easier to debug** — Simple text output makes tracing logic easier
+
+This design choice keeps the project focused on core Operating Systems concepts rather than software engineering complexities.
+
+---
+
 ## Real World Importance
 
 Deadlock prevention is critical in many real-world systems:
@@ -404,6 +465,22 @@ Without deadlock prevention:
 ### Our Solution
 
 This project demonstrates the core concept that banks, operating systems, and databases use to prevent deadlock — checking safety BEFORE granting any resource.
+
+---
+
+## Limitations of Banker's Algorithm
+
+While Banker's Algorithm is a foundational concept, it has practical limitations:
+
+- **Requires advance knowledge** — Each process must declare its maximum resource need in advance
+- **Not practical for large systems** — The algorithm becomes computationally expensive with many processes
+- **Adds overhead** — Every request must be checked, slowing down resource allocation
+- **Rarely used directly in modern OS** — Modern systems use simpler approaches like resource ordering or deadlock detection
+
+Despite these limitations, understanding Banker's Algorithm is essential for:
+- Learning the fundamentals of deadlock avoidance
+- Understanding why deadlock prevention matters
+- Building a foundation for more advanced OS concepts
 
 ---
 
