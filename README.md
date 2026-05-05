@@ -1,5 +1,51 @@
 # Deadlock Defender (IPC Engine)
 
+---
+
+## 📽️ Demo Video
+
+**[Watch the Demo Video](https://drive.google.com/file/d/1wB6oK5XMZk12GTN78Xd1QvIM4_sPnyyY/view?usp=sharing)**
+
+A 3-minute demonstration showing all three modes:
+- Vulnerable Mode (deadlock may occur)
+- Defender Mode (Banker's Algorithm prevents deadlock)
+- Manual Input Mode (interactive testing)
+
+---
+
+## 📂 Project Structure
+
+```
+deadlock-defender/
+├── src/
+│   ├── main.c          # Entry point, menu, fork workers
+│   ├── manager.c       # Manager process - grants/denies requests
+│   ├── worker.c       # Worker processes - request resources
+│   ├── banker.c       # Banker's Algorithm implementation
+│   └── ipc.c          # Shared memory and semaphore setup
+├── include/
+│   ├── banker.h       # Banker function declarations
+│   ├── ipc.h          # Shared data structures
+│   ├── manager.h     # Manager function declarations
+│   └── worker.h      # Worker function declarations
+├── report/
+│   └── README.md      # Technical report info
+├── docs/
+│   └── project_report.html  # HTML version of report
+├── screenshots/       # Execution screenshots
+├── Makefile          # Build system
+├── README.md        # This file
+└── .gitignore       # Git ignore rules
+```
+
+---
+
+## 📄 Technical Report
+
+Available in: `report/` folder (LaTeX source) or `docs/project_report.html` (HTML version)
+
+---
+
 ## 1. Introduction
 
 **What is Deadlock?**
