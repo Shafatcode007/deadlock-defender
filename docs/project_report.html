@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deadlock Defender — IPC Engine | Project Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #1a1a2e;
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 50px;
+  }
+  h1 {
+    font-size: 28px;
+    color: #0f3460;
+    border-bottom: 3px solid #e94560;
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    color: #555;
+    font-size: 13px;
+    margin-bottom: 30px;
+  }
+  h2 {
+    font-size: 18px;
+    color: #0f3460;
+    margin: 32px 0 10px;
+    padding: 6px 14px;
+    background: #eef2ff;
+    border-left: 4px solid #e94560;
+  }
+  h3 {
+    font-size: 15px;
+    color: #16213e;
+    margin: 18px 0 6px;
+    font-weight: 700;
+  }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 22px; }
+  li { margin: 4px 0; }
+  code {
+    background: #f4f4f8;
+    border: 1px solid #ddd;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1a1a2e;
+    color: #e2e2e2;
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-family: 'Consolas', monospace;
+    font-size: 12.5px;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.5;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  th {
+    background: #0f3460;
+    color: #fff;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #dde;
+  }
+  tr:nth-child(even) td { background: #f8f8ff; }
+  .granted { color: #1a7a1a; font-weight: 700; }
+  .denied  { color: #c0392b; font-weight: 700; }
+  .box {
+    background: #fffbe6;
+    border: 1px solid #f0c040;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .analogy-box {
+    background: #e8f4f8;
+    border-left: 4px solid #2980b9;
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .viva-q { font-weight: 700; color: #0f3460; margin-top: 14px; }
+  .viva-a { color: #333; margin-left: 12px; }
+  .cover {
+    text-align: center;
+    padding: 60px 0 40px;
+    border-bottom: 2px solid #e94560;
+    margin-bottom: 40px;
+  }
+  .cover h1 { border: none; font-size: 34px; }
+  .cover .tag {
+    display: inline-block;
+    background: #e94560;
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin: 6px 4px;
+  }
+  .toc a { color: #0f3460; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc li { margin: 5px 0; }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    margin: 6px 0;
+  }
+  .step-num {
+    background: #e94560;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 10px;
+    margin-top: 2px;
+  }
+  @media print {
+    body { padding: 20px 30px; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>Deadlock Defender</h1>
+  <h2 style="border:none;background:none;color:#e94560;font-size:16px;margin:8px 0;">IPC Engine — Banker's Algorithm</h2>
+  <p style="color:#555;margin:16px 0 10px;">Complete Technical Report &amp; Viva Preparation Guide</p>
+  <div>
+    <span class="tag">C Language</span>
+    <span class="tag">Linux / WSL</span>
+    <span class="tag">fork()</span>
+    <span class="tag">Shared Memory</span>
+    <span class="tag">Semaphores</span>
+    <span class="tag">Banker's Algorithm</span>
+  </div>
+  <p style="color:#888;margin-top:24px;font-size:13px;">CSE323 — Operating Systems Term Project</p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<h2>Table of Contents</h2>
+<ol class="toc">
+  <li><a href="#s1">One-Page Intuition (Simple Analogy)</a></li>
+  <li><a href="#s2">What Is Execution in This Project</a></li>
+  <li><a href="#s3">The Problem &amp; Why It Matters</a></li>
+  <li><a href="#s4">System Architecture</a></li>
+  <li><a href="#s5">Data Structures — Explained Clearly</a></li>
+  <li><a href="#s6">Input / Output — Concrete Examples</a></li>
+  <li><a href="#s7">Execution Flow — Step-by-Step</a></li>
+  <li><a href="#s8">Banker's Algorithm — Intuitive + Formal</a></li>
+  <li><a href="#s9">Modes Comparison</a></li>
+  <li><a href="#s10">Why This Project Matters — Real World</a></li>
+  <li><a href="#s11">Limitations</a></li>
+  <li><a href="#s12">Real-World Extensions</a></li>
+  <li><a href="#s13">Demo Script (What to Say in Viva)</a></li>
+  <li><a href="#s14">Viva Q&amp;A — 15 Questions with Answers</a></li>
+</ol>
+
+<!-- SECTION 1 -->
+<h2 id="s1">1. One-Page Intuition</h2>
+
+<div class="analogy-box">
+  <h3>The Bank Loan Analogy</h3>
+  <p>Imagine a bank with <strong>limited cash reserves</strong> (say $10,000 total). Three customers (workers) each want loans at different times. The bank manager knows each customer's maximum possible loan request in advance.</p>
+  <ul>
+    <li><strong>Customer A</strong> might need up to $7,000 total</li>
+    <li><strong>Customer B</strong> might need up to $3,000 total</li>
+    <li><strong>Customer C</strong> might need up to $9,000 total</li>
+  </ul>
+  <p>A smart bank manager never gives out money that would leave the bank unable to satisfy at least <em>one</em> customer enough to finish their business and repay. That way, the money comes back and can serve others.</p>
+  <p>A <strong>foolish manager</strong> gives money freely → customers hold partial funds → everyone waits for everyone else → <strong>deadlock</strong>. The bank freezes.</p>
+  <p>Your project <strong>is that smart manager</strong> — the Banker's Algorithm.</p>
+</div>
+
+<h3>What Actually Runs</h3>
+<p>When you launch the program:</p>
+<ol>
+  <li>One <strong>Manager process</strong> (parent) starts — it owns shared memory</li>
+  <li>Three <strong>Worker processes</strong> (children via <code>fork()</code>) start simultaneously</li>
+  <li>Workers race to request resources (like customers calling the bank)</li>
+  <li>Manager intercepts each request, runs Banker's Algorithm, grants or denies</li>
+  <li>Workers finish, release resources, exit</li>
+  <li>Manager confirms clean exit, frees memory</li>
+</ol>
+
+<!-- SECTION 2 -->
+<h2 id="s2">2. What Is "Execution" in This Project</h2>
+
+<h3>Execution in OS Terms</h3>
+<p>Execution means a process moving through its lifecycle:</p>
+<pre>NEW → READY → RUNNING → WAITING → RUNNING → TERMINATED</pre>
+
+<p>In your project, each Worker process follows this exact lifecycle:</p>
+<table>
+  <tr><th>Phase</th><th>OS State</th><th>What Happens</th></tr>
+  <tr><td>Program starts</td><td>NEW</td><td><code>fork()</code> creates child process</td></tr>
+  <tr><td>Worker running</td><td>RUNNING</td><td>Prepares resource request vector</td></tr>
+  <tr><td>Sends request</td><td>RUNNING → WAITING</td><td>Posts to semaphore, blocks on <code>request_done</code></td></tr>
+  <tr><td>Manager decides</td><td>WAITING</td><td>Banker's Algorithm runs in manager</td></tr>
+  <tr><td>Gets response</td><td>WAITING → RUNNING</td><td>Semaphore posted, worker wakes up</td></tr>
+  <tr><td>Releases resources</td><td>RUNNING</td><td>Updates shared memory, marks done</td></tr>
+  <tr><td>Exits</td><td>TERMINATED</td><td><code>exit(0)</code> called</td></tr>
+</table>
+
+<h3>Execution Map</h3>
+<pre>
+init shared memory
+      ↓
+fork() × 3 workers
+      ↓
+Worker sends request → semaphore signals manager
+      ↓
+Manager wakes → reads request from shared memory
+      ↓
+Check 1: request ≤ need?          NO → DENY (-1)
+      ↓ YES
+Check 2: request ≤ available?     NO → DENY (-2)
+      ↓ YES
+Tentatively allocate
+      ↓
+Safety check (simulate all finish) UNSAFE → rollback → DENY (0)
+      ↓ SAFE
+Keep allocation → update matrices
+      ↓
+Write result → signal worker → print state
+      ↓
+Repeat until all workers done
+      ↓
+Cleanup shared memory → exit
+</pre>
+
+<!-- SECTION 3 -->
+<h2 id="s3">3. The Problem &amp; Why It Matters</h2>
+
+<h3>What Is Deadlock</h3>
+<div class="box">
+  <strong>Formal definition:</strong> A set of processes is deadlocked if every process in the set is waiting for an event that can only be caused by another process in the set — and no process can proceed.
+</div>
+
+<p><strong>Simple version:</strong> Two cars at a single-lane bridge from opposite sides. Neither moves. Neither will reverse. Both wait forever.</p>
+
+<h3>Four Necessary Conditions (Coffman, 1971)</h3>
+<p>ALL four must hold simultaneously for deadlock to occur:</p>
+<table>
+  <tr><th>#</th><th>Condition</th><th>Meaning</th></tr>
+  <tr><td>1</td><td>Mutual Exclusion</td><td>Resource held by only one process at a time</td></tr>
+  <tr><td>2</td><td>Hold and Wait</td><td>Process holds a resource while waiting for another</td></tr>
+  <tr><td>3</td><td>No Preemption</td><td>Resources cannot be forcibly taken away</td></tr>
+  <tr><td>4</td><td>Circular Wait</td><td>P1 waits for P2, P2 waits for P3, P3 waits for P1</td></tr>
+</table>
+
+<h3>Where Deadlock Happens in Real Systems</h3>
+<table>
+  <tr><th>System</th><th>Example</th></tr>
+  <tr><td>Operating System</td><td>Two threads lock mutex A then B vs B then A</td></tr>
+  <tr><td>Database (MySQL/Postgres)</td><td>Transaction 1 locks row A needs row B; T2 locks row B needs row A</td></tr>
+  <tr><td>Distributed Systems</td><td>Microservices waiting on each other's API responses</td></tr>
+  <tr><td>Java/Python threads</td><td><code>synchronized</code> blocks acquired in different orders</td></tr>
+  <tr><td>Cloud schedulers</td><td>Jobs holding partial GPU/CPU allocations, waiting for more</td></tr>
+</table>
+
+<h3>Why It's Dangerous</h3>
+<ul>
+  <li>System hangs with <strong>no error message</strong> — silent failure</li>
+  <li>CPU usage drops to zero but processes never finish</li>
+  <li>Requires manual kill or reboot to recover</li>
+  <li>In production: bank transactions frozen, hospital systems unresponsive</li>
+</ul>
+
+<!-- SECTION 4 -->
+<h2 id="s4">4. System Architecture</h2>
+
+<pre>
+┌──────────────────────────────────────────────────────────────┐
+│                        MAIN PROCESS                          │
+│  • Calls ipc_init() — creates shared memory segment          │
+│  • Calls fork() three times to create Worker processes        │
+│  • Parent becomes Manager, children become Workers            │
+└──────────────────────────────────────────────────────────────┘
+           ↓ fork()          ↓ fork()         ↓ fork()
+  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+  │  Worker  1   │  │  Worker  2   │  │  Worker  3   │
+  │  PID: child  │  │  PID: child  │  │  PID: child  │
+  │  run_worker()│  │  run_worker()│  │  run_worker()│
+  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+         │                 │                  │
+         └─────────────────┼──────────────────┘
+                           │
+              ┌────────────▼─────────────┐
+              │      SHARED MEMORY       │
+              │  (shmget / shmat)        │
+              │                          │
+              │  available[3]            │
+              │  allocation[3][3]        │
+              │  max[3][3]               │
+              │  need[3][3]              │
+              │  request[3]              │
+              │  request_owner           │
+              │  request_result          │
+              │  worker_done[3]          │
+              │                          │
+              │  sem: mutex              │
+              │  sem: request_ready      │
+              │  sem: request_done       │
+              └────────────┬─────────────┘
+                           │
+              ┌────────────▼─────────────┐
+              │      MANAGER PROCESS     │
+              │  run_manager()           │
+              │  ↳ banker_request()      │
+              │  ↳ is_safe_state()       │
+              │  ↳ print_state()         │
+              └──────────────────────────┘
+</pre>
+
+<h3>Component Responsibilities</h3>
+<table>
+  <tr><th>Component</th><th>File</th><th>Role</th></tr>
+  <tr><td>IPC Layer</td><td>ipc.c</td><td>Create/destroy shared memory and semaphores</td></tr>
+  <tr><td>Worker</td><td>worker.c</td><td>Send requests, wait for response, release resources</td></tr>
+  <tr><td>Manager</td><td>manager.c</td><td>Read requests, call Banker's, write results, log state</td></tr>
+  <tr><td>Banker</td><td>banker.c</td><td>Safety algorithm, resource-request algorithm</td></tr>
+  <tr><td>Entry Point</td><td>main.c</td><td>Menu, fork workers, run manager, cleanup</td></tr>
+</table>
+
+<h3>Semaphore Roles</h3>
+<table>
+  <tr><th>Semaphore</th><th>Initial Value</th><th>Purpose</th></tr>
+  <tr><td><code>mutex</code></td><td>1</td><td>Mutual exclusion — only one process reads/writes shared memory at a time</td></tr>
+  <tr><td><code>request_ready</code></td><td>0</td><td>Worker signals manager: "I have a request ready"</td></tr>
+  <tr><td><code>request_done</code></td><td>0</td><td>Manager signals worker: "I have made a decision"</td></tr>
+</table>
+
+<!-- SECTION 5 -->
+<h2 id="s5">5. Data Structures — Explained Clearly</h2>
+
+<h3>The Four Key Structures</h3>
+
+<table>
+  <tr><th>Structure</th><th>Type</th><th>Meaning</th></tr>
+  <tr><td><code>available[R]</code></td><td>1D array</td><td>How many units of each resource are currently free</td></tr>
+  <tr><td><code>max[P][R]</code></td><td>2D matrix</td><td>Maximum units each process will ever need (declared upfront)</td></tr>
+  <tr><td><code>allocation[P][R]</code></td><td>2D matrix</td><td>Units currently held by each process</td></tr>
+  <tr><td><code>need[P][R]</code></td><td>2D matrix</td><td>Units still needed = max − allocation</td></tr>
+</table>
+
+<p>Where <strong>P = 3 workers</strong>, <strong>R = 3 resource types</strong>.</p>
+
+<h3>Worked Numeric Example</h3>
+<p>System starts with: <strong>R0=10, R1=5, R2=7</strong></p>
+
+<p><strong>Max matrix</strong> (declared at start):</p>
+<table>
+  <tr><th>Worker</th><th>R0</th><th>R1</th><th>R2</th></tr>
+  <tr><td>W1</td><td>7</td><td>5</td><td>3</td></tr>
+  <tr><td>W2</td><td>3</td><td>2</td><td>2</td></tr>
+  <tr><td>W3</td><td>9</td><td>0</td><td>2</td></tr>
+</table>
+
+<p>After W1 gets [0,1,0] and W2 gets [1,0,0]:</p>
+<p><strong>Allocation matrix:</strong></p>
+<table>
+  <tr><th>Worker</th><th>R0</th><th>R1</th><th>R2</th></tr>
+  <tr><td>W1</td><td>0</td><td>1</td><td>0</td></tr>
+  <tr><td>W2</td><td>1</td><td>0</td><td>0</td></tr>
+  <tr><td>W3</td><td>0</td><td>0</td><td>0</td></tr>
+</table>
+
+<p><strong>Need matrix</strong> (= Max − Allocation):</p>
+<table>
+  <tr><th>Worker</th><th>R0</th><th>R1</th><th>R2</th></tr>
+  <tr><td>W1</td><td>7</td><td>4</td><td>3</td></tr>
+  <tr><td>W2</td><td>2</td><td>2</td><td>2</td></tr>
+  <tr><td>W3</td><td>9</td><td>0</td><td>2</td></tr>
+</table>
+
+<p><strong>Available</strong> = [10,5,7] − [0+1+0, 1+0+0, 0+0+0] = <strong>[9, 4, 7]</strong></p>
+
+<!-- SECTION 6 -->
+<h2 id="s6">6. Input / Output — Concrete Examples</h2>
+
+<h3>Input Format</h3>
+<ul>
+  <li><strong>Worker ID:</strong> integer 1–3 (or 0 to exit in manual mode)</li>
+  <li><strong>Request vector:</strong> three integers — units of R0, R1, R2 being requested</li>
+</ul>
+
+<h3>Output Format</h3>
+<ul>
+  <li>Decision line: GRANTED or DENIED with reason</li>
+  <li>Updated system state table</li>
+</ul>
+
+<h3>Example 1 — GRANTED (Safe)</h3>
+<pre>
+Enter Worker ID (1-3) or 0 to exit: 1
+Enter request (R0 R1 R2): 0 1 0
+
+[Manager] Request from Worker 1: R0=0 R1=1 R2=0
+[Manager] Decision: GRANTED — system still SAFE
+
+Available after: R0=9  R1=4  R2=7
+W1 Allocation:   [0 1 0]
+W1 Need:         [7 4 3]
+</pre>
+
+<h3>Example 2 — DENIED (Exceeds Max Need)</h3>
+<pre>
+Enter Worker ID (1-3) or 0 to exit: 2
+Enter request (R0 R1 R2): 5 0 0
+
+[Manager] Request from Worker 2: R0=5 R1=0 R2=0
+[Manager] Decision: DENIED — exceeds declared maximum need
+
+(W2's max for R0 is 3. Requesting 5 > 3. Impossible.)
+</pre>
+
+<h3>Example 3 — DENIED (Unsafe State)</h3>
+<pre>
+Enter Worker ID (1-3) or 0 to exit: 3
+Enter request (R0 R1 R2): 3 0 0
+
+[Manager] Request from Worker 3: R0=3 R1=0 R2=0
+[Banker] Tentative allocation made...
+[Banker] Safety check: no safe sequence found
+[Manager] Decision: DENIED — would lead to unsafe state
+
+(Granting this leaves no process able to finish → deadlock risk)
+</pre>
+
+<h3>Three Denial Reasons Summary</h3>
+<table>
+  <tr><th>Code</th><th>Condition</th><th>Message</th></tr>
+  <tr><td>-1</td><td>request[j] &gt; need[i][j]</td><td class="denied">DENIED — exceeds declared maximum need</td></tr>
+  <tr><td>-2</td><td>request[j] &gt; available[j]</td><td class="denied">DENIED — insufficient resources available</td></tr>
+  <tr><td>0</td><td>Safety check fails</td><td class="denied">DENIED — would lead to unsafe state</td></tr>
+  <tr><td>1</td><td>All checks pass</td><td class="granted">GRANTED — system still SAFE</td></tr>
+</table>
+
+<!-- SECTION 7 -->
+<h2 id="s7">7. Execution Flow — Step-by-Step</h2>
+
+<div class="flow-step"><span class="step-num">1</span><span><strong>Program starts:</strong> <code>main()</code> shows menu. User picks mode. Shared memory initialised via <code>ipc_init()</code>.</span></div>
+<div class="flow-step"><span class="step-num">2</span><span><strong>Workers forked:</strong> <code>fork()</code> called 3 times. Each child calls <code>run_worker(id, shm, mode)</code>.</span></div>
+<div class="flow-step"><span class="step-num">3</span><span><strong>Worker prepares request:</strong> Picks request vector from scenario table (or user input in manual mode).</span></div>
+<div class="flow-step"><span class="step-num">4</span><span><strong>Worker writes to shared memory:</strong> <code>sem_wait(mutex)</code> → writes <code>request[]</code>, <code>request_owner</code>, sets result to <code>-1</code> (pending) → <code>sem_post(mutex)</code>.</span></div>
+<div class="flow-step"><span class="step-num">5</span><span><strong>Worker signals manager:</strong> <code>sem_post(request_ready)</code> — wakes the manager.</span></div>
+<div class="flow-step"><span class="step-num">6</span><span><strong>Worker blocks:</strong> <code>sem_wait(request_done)</code> — sleeps until manager responds.</span></div>
+<div class="flow-step"><span class="step-num">7</span><span><strong>Manager wakes:</strong> <code>sem_wait(request_ready)</code> returns. Manager locks mutex, reads request and owner.</span></div>
+<div class="flow-step"><span class="step-num">8</span><span><strong>Check 1 — Exceeds Need?</strong> For each resource j: if <code>request[j] &gt; need[owner][j]</code> → return <code>-1</code>.</span></div>
+<div class="flow-step"><span class="step-num">9</span><span><strong>Check 2 — Exceeds Available?</strong> For each j: if <code>request[j] &gt; available[j]</code> → return <code>-2</code>.</span></div>
+<div class="flow-step"><span class="step-num">10</span><span><strong>Tentative allocation:</strong> <code>available[j] -= request[j]</code>, <code>allocation[owner][j] += request[j]</code>, <code>need[owner][j] -= request[j]</code>.</span></div>
+<div class="flow-step"><span class="step-num">11</span><span><strong>Safety check:</strong> Run <code>is_safe_state()</code>. If unsafe → rollback all three matrices → return <code>0</code>.</span></div>
+<div class="flow-step"><span class="step-num">12</span><span><strong>Grant:</strong> Keep allocation. Set <code>request_result = 1</code>. Release mutex. Print decision. Signal worker: <code>sem_post(request_done)</code>.</span></div>
+<div class="flow-step"><span class="step-num">13</span><span><strong>Worker wakes:</strong> Reads result, prints GRANTED/DENIED, uses resource (<code>sleep(1)</code>), then releases all, sets <code>worker_done[i] = 1</code>.</span></div>
+<div class="flow-step"><span class="step-num">14</span><span><strong>Cleanup:</strong> Manager detects all done, exits loop. <code>ipc_cleanup()</code> destroys semaphores, detaches shared memory.</span></div>
+
+<!-- SECTION 8 -->
+<h2 id="s8">8. Banker's Algorithm — Intuitive + Formal</h2>
+
+<h3>Key Concepts</h3>
+<table>
+  <tr><th>Term</th><th>Meaning</th></tr>
+  <tr><td>Safe State</td><td>There exists at least one ordering of processes that allows all to finish without deadlock</td></tr>
+  <tr><td>Safe Sequence</td><td>The specific ordering, e.g., &lt;W2, W1, W3&gt; — each can finish using available + prior releases</td></tr>
+  <tr><td>Unsafe State</td><td>No such ordering exists — deadlock is possible (not guaranteed, but possible)</td></tr>
+</table>
+
+<h3>Safety Algorithm (is_safe_state)</h3>
+<ol>
+  <li>Set <code>Work = Available</code> (copy of free resources)</li>
+  <li>Set <code>Finish[i] = false</code> for all processes</li>
+  <li>Find process i where: <code>Finish[i] == false</code> AND <code>Need[i] ≤ Work</code></li>
+  <li>If found: <code>Work = Work + Allocation[i]</code>, <code>Finish[i] = true</code>, go to step 3</li>
+  <li>If no such i found: stop</li>
+  <li>If all <code>Finish[i] == true</code> → SAFE. Else → UNSAFE</li>
+</ol>
+
+<h3>Worked Safety Example</h3>
+<p>State: Available = [3, 3, 2]</p>
+<table>
+  <tr><th>Worker</th><th>Allocation</th><th>Need</th></tr>
+  <tr><td>W1</td><td>[0,1,0]</td><td>[7,4,3]</td></tr>
+  <tr><td>W2</td><td>[2,0,0]</td><td>[1,2,2]</td></tr>
+  <tr><td>W3</td><td>[3,0,2]</td><td>[6,0,0]</td></tr>
+</table>
+
+<pre>
+Work = [3,3,2],  Finish = [F, F, F]
+
+Round 1:
+  W1 Need [7,4,3] ≤ [3,3,2]? NO
+  W2 Need [1,2,2] ≤ [3,3,2]? YES → Work = [3,3,2]+[2,0,0] = [5,3,2], Finish[W2]=T
+
+Round 2:
+  W1 Need [7,4,3] ≤ [5,3,2]? NO
+  W3 Need [6,0,0] ≤ [5,3,2]? NO
+  (W2 already done)
+  No progress → UNSAFE STATE
+
+Safe sequence does NOT exist with this allocation.
+</pre>
+
+<h3>Resource-Request Algorithm (banker_request)</h3>
+<ol>
+  <li>If <code>Request[i] &gt; Need[i]</code> → error, deny (<code>-1</code>)</li>
+  <li>If <code>Request[i] &gt; Available</code> → wait, deny (<code>-2</code>)</li>
+  <li>Tentatively: <code>Available -= Request[i]</code>, <code>Allocation[i] += Request[i]</code>, <code>Need[i] -= Request[i]</code></li>
+  <li>Run safety check → if SAFE: keep allocation, return <code>1</code></li>
+  <li>If UNSAFE: rollback step 3, return <code>0</code></li>
+</ol>
+
+<!-- SECTION 9 -->
+<h2 id="s9">9. Modes Comparison</h2>
+
+<table>
+  <tr><th>Feature</th><th>Vulnerable Mode</th><th>Defender Mode</th><th>Manual Mode</th></tr>
+  <tr><td>Worker processes</td><td>3 auto workers</td><td>3 auto workers</td><td>No workers (user is the worker)</td></tr>
+  <tr><td>Banker's Algorithm</td><td>Disabled</td><td>Enabled</td><td>Enabled</td></tr>
+  <tr><td>Request source</td><td>Hardcoded scenarios</td><td>Hardcoded scenarios</td><td>User keyboard input</td></tr>
+  <tr><td>Expected outcome</td><td>Deadlock / hang</td><td>Clean exit</td><td>Interactive grants/denials</td></tr>
+  <tr><td>Manager role</td><td>Just waits</td><td>Validates every request</td><td>Validates interactively</td></tr>
+  <tr><td>Demo purpose</td><td>Show the problem</td><td>Show the solution</td><td>Show understanding</td></tr>
+</table>
+
+<div class="box">
+  <strong>Viva Tip:</strong> In vulnerable mode, all four deadlock conditions can be present simultaneously. In defender mode, Banker's Algorithm breaks circular wait by denying unsafe requests. In manual mode, you demonstrate your understanding of the algorithm by choosing requests yourself.
+</div>
+
+<!-- SECTION 10 -->
+<h2 id="s10">10. Why This Project Matters — Real World</h2>
+
+<table>
+  <tr><th>Your Component</th><th>Real-World Equivalent</th><th>System</th></tr>
+  <tr><td>Worker process</td><td>Database transaction / user thread</td><td>MySQL, PostgreSQL</td></tr>
+  <tr><td>Shared memory</td><td>Kernel resource table / lock table</td><td>Linux kernel, Windows NT</td></tr>
+  <tr><td>Manager process</td><td>OS scheduler / lock manager</td><td>OS kernel, DBMS</td></tr>
+  <tr><td>Banker's Algorithm</td><td>Resource allocation policy</td><td>IBM mainframes, real-time OS</td></tr>
+  <tr><td>Semaphores</td><td>Mutexes, spinlocks, futexes</td><td>All multi-threaded systems</td></tr>
+  <tr><td>Need matrix</td><td>Maximum memory declared by JVM</td><td>Java, JVM languages</td></tr>
+  <tr><td>Available vector</td><td>Free RAM / GPU memory pool</td><td>Cloud scheduler (K8s)</td></tr>
+</table>
+
+<ul>
+  <li><strong>Linux kernel:</strong> Uses resource ordering to avoid deadlock in file system locks</li>
+  <li><strong>PostgreSQL:</strong> Detects deadlocks in transactions, rolls back one party</li>
+  <li><strong>Java:</strong> <code>java.util.concurrent</code> uses lock ordering and tryLock to avoid circular wait</li>
+  <li><strong>Kubernetes:</strong> Pod resource requests/limits mirror the max/need structure exactly</li>
+  <li><strong>AWS/GCP:</strong> Instance quota management resembles Banker's available vector</li>
+</ul>
+
+<!-- SECTION 11 -->
+<h2 id="s11">11. Limitations</h2>
+
+<table>
+  <tr><th>Limitation</th><th>Impact</th></tr>
+  <tr><td>Fixed number of processes and resources at compile time</td><td>Cannot dynamically add workers or resource types</td></tr>
+  <tr><td>Centralised manager</td><td>Single point of failure; bottleneck under high load</td></tr>
+  <tr><td>Requires max need declared upfront</td><td>Not always possible in real systems (dynamic workloads)</td></tr>
+  <tr><td>Requests serialized one at a time</td><td>No parallelism in decision-making</td></tr>
+  <tr><td>Not distributed</td><td>Shared memory only works on single machine</td></tr>
+  <tr><td>Simplified workload (hardcoded scenarios)</td><td>Does not simulate real unpredictable request patterns</td></tr>
+  <tr><td>No recovery mechanism</td><td>If vulnerable mode deadlocks, must kill manually</td></tr>
+</table>
+
+<!-- SECTION 12 -->
+<h2 id="s12">12. Real-World Extensions</h2>
+
+<ul>
+  <li><strong>Persistent logging:</strong> Write every request/decision to a log file with timestamps — useful for audit trails and post-mortem analysis</li>
+  <li><strong>Visual terminal dashboard:</strong> Use <code>ncurses</code> to show a live updating matrix table and request queue</li>
+  <li><strong>Configurable resources/processes:</strong> Read initial state from a config file or command-line arguments instead of hardcoded values</li>
+  <li><strong>Network-based IPC:</strong> Replace shared memory with TCP sockets or message queues (<code>mq_send</code>) to work across machines</li>
+  <li><strong>Dynamic process addition:</strong> Allow new workers to join mid-execution with their own max declarations</li>
+  <li><strong>Deadlock detection mode:</strong> Instead of avoidance, implement detection + recovery (rollback one process)</li>
+  <li><strong>Stress test mode:</strong> Fork 50+ workers with random requests, measure throughput and denial rates</li>
+  <li><strong>Kubernetes analogy:</strong> Map workers to Pods, resources to CPU/memory limits, manager to kube-scheduler</li>
+</ul>
+
+<!-- SECTION 13 -->
+<h2 id="s13">13. Demo Script — What to Say in Viva</h2>
+
+<div class="analogy-box">
+  <h3>60–90 Second Opening</h3>
+  <p><em>"My project simulates a real OS problem — deadlock — and demonstrates how to prevent it. I have three worker processes competing for shared resources, just like database transactions competing for row locks. The system runs on Linux using fork() for process creation, shared memory for communication, and semaphores for synchronization."</em></p>
+  <p><em>"I'll first show you Vulnerable Mode — where no protection is active and the system can deadlock. Then Defender Mode — where my Banker's Algorithm implementation prevents any unsafe allocation. Finally, Manual Mode — where I can type in my own requests and show you exactly how the algorithm accepts or rejects them."</em></p>
+</div>
+
+<h3>Terminal Demo Flow</h3>
+<ol>
+  <li>Run <code>./deadlock</code> → choose mode <strong>1 (Vulnerable)</strong></li>
+  <li>Say: <em>"Notice workers self-grant without any check. In a real circular dependency this would freeze."</em></li>
+  <li>Run again → choose mode <strong>2 (Defender)</strong></li>
+  <li>Point to a DENIED line — say: <em>"This request would have caused an unsafe state. The Banker's Algorithm detected it by simulating whether all processes could still finish. They couldn't, so it denied."</em></li>
+  <li>Run again → choose mode <strong>3 (Manual)</strong></li>
+  <li>Enter Worker 1, request <code>0 1 0</code> → show GRANTED</li>
+  <li>Enter Worker 1, request <code>7 4 3</code> → show DENIED (exceeds need or unsafe)</li>
+  <li>Say: <em>"The system correctly identifies the reason for each denial."</em></li>
+</ol>
+
+<h3>One GRANTED + One DENIED Explained</h3>
+<table>
+  <tr><th></th><th>GRANTED case</th><th>DENIED case</th></tr>
+  <tr><td>Request</td><td>W1 asks [0,1,0]</td><td>W3 asks [3,0,0] (unsafe)</td></tr>
+  <tr><td>Check 1</td><td>[0,1,0] ≤ Need [7,5,3] ✓</td><td>[3,0,0] ≤ Need [9,0,2] ✓</td></tr>
+  <tr><td>Check 2</td><td>[0,1,0] ≤ Available ✓</td><td>[3,0,0] ≤ Available ✓</td></tr>
+  <tr><td>Safety</td><td>Safe sequence exists ✓</td><td>No safe sequence after allocation ✗</td></tr>
+  <tr><td>Decision</td><td class="granted">GRANTED</td><td class="denied">DENIED — unsafe state</td></tr>
+</table>
+
+<!-- SECTION 14 -->
+<h2 id="s14">14. Viva Q&amp;A — 15 Questions with Answers</h2>
+
+<p class="viva-q">Q1. What are the four necessary conditions for deadlock?</p>
+<p class="viva-a">Mutual exclusion, hold and wait, no preemption, and circular wait. All four must hold simultaneously. Banker's Algorithm prevents deadlock by ensuring circular wait never develops — it refuses requests that would lead to an unsafe state.</p>
+
+<p class="viva-q">Q2. What is the difference between deadlock avoidance and deadlock prevention?</p>
+<p class="viva-a">Prevention eliminates one of the four conditions structurally (e.g., enforce resource ordering to prevent circular wait). Avoidance allows the conditions to exist but makes careful runtime decisions — Banker's Algorithm is avoidance: it checks each request at runtime and denies it if the system would enter an unsafe state.</p>
+
+<p class="viva-q">Q3. What is a safe state? What is an unsafe state?</p>
+<p class="viva-a">A safe state means there exists a safe sequence — an ordering of processes such that each can obtain its remaining resources, finish, and release them for the next. An unsafe state means no such sequence exists. Unsafe does not guarantee deadlock immediately, but it means deadlock is possible.</p>
+
+<p class="viva-q">Q4. Why does Banker's Algorithm require max need to be declared upfront?</p>
+<p class="viva-a">The safety algorithm needs to simulate whether each process can eventually finish. Without knowing the maximum it will ever request, we cannot determine if it can complete given current available resources. This is the main practical limitation of Banker's Algorithm.</p>
+
+<p class="viva-q">Q5. What is shared memory and why do you use it?</p>
+<p class="viva-a">Shared memory is a region of RAM accessible by multiple processes simultaneously — created with <code>shmget()</code> and attached with <code>shmat()</code>. It is the fastest IPC mechanism because there is no kernel copying; all processes read and write directly to the same physical memory pages. We use it so worker processes and the manager can exchange resource state without overhead.</p>
+
+<p class="viva-q">Q6. What is a semaphore and how is it used in your project?</p>
+<p class="viva-a">A semaphore is a kernel-level synchronization primitive with two operations: wait (decrement, block if zero) and post (increment, wake blocked process). We use three: <code>mutex</code> (value=1) for mutual exclusion on shared memory, <code>request_ready</code> (value=0) for worker-to-manager signaling, and <code>request_done</code> (value=0) for manager-to-worker signaling.</p>
+
+<p class="viva-q">Q7. What is a race condition and how do your semaphores prevent it?</p>
+<p class="viva-a">A race condition occurs when two processes access shared data concurrently and the result depends on execution order. For example, if two workers wrote their requests simultaneously, the manager would read corrupted data. The <code>mutex</code> semaphore ensures only one process can access shared memory at a time, preventing this.</p>
+
+<p class="viva-q">Q8. What does fork() do and what is the difference between parent and child?</p>
+<p class="viva-a"><code>fork()</code> creates an exact copy of the calling process. In the parent, <code>fork()</code> returns the child's PID. In the child, it returns 0. Both have the same memory contents initially, but execute independently. In our project, the parent becomes the manager and the children become workers — they all share the same shared memory pointer because it was attached before forking.</p>
+
+<p class="viva-q">Q9. Why does your vulnerable mode potentially deadlock?</p>
+<p class="viva-a">In vulnerable mode, all four deadlock conditions can hold: resources are exclusive (mutex), workers hold some and wait for more (hold-and-wait), the manager cannot preempt allocations (no preemption), and the hardcoded scenarios create circular dependencies (worker 1 needs what worker 2 holds and vice versa). Without Banker's check, these conditions are never broken.</p>
+
+<p class="viva-q">Q10. Explain the Need matrix. How is it maintained?</p>
+<p class="viva-a"><code>Need[i][j] = Max[i][j] - Allocation[i][j]</code> — the remaining resources process i still needs. It is updated in two places: when a request is granted (<code>Need[i][j] -= request[j]</code>), and when a worker releases all resources (<code>Need[i][j] = Max[i][j]</code>, resetting back to full max).</p>
+
+<p class="viva-q">Q11. What happens during rollback in banker_request?</p>
+<p class="viva-a">If the safety check fails after tentative allocation, we undo all three changes: <code>available[j] += request[j]</code>, <code>allocation[i][j] -= request[j]</code>, <code>need[i][j] += request[j]</code>. This restores the system to its pre-request state so no resources are actually given. The worker is then told DENIED.</p>
+
+<p class="viva-q">Q12. What is the time complexity of the safety algorithm?</p>
+<p class="viva-a">O(P² × R) where P = number of processes, R = number of resources. The outer while loop can run at most P times (one process finishes per pass), the inner loop scans all P processes, and the need check scans R resources. For our system (P=3, R=3) this is trivially fast.</p>
+
+<p class="viva-q">Q13. How is IPC different from regular function calls?</p>
+<p class="viva-a">Regular function calls share the same process memory and stack. IPC is communication between separate processes with separate address spaces. Shared memory gives them a common region; semaphores coordinate access. Without IPC mechanisms, one process cannot read or write another's variables.</p>
+
+<p class="viva-q">Q14. What would happen if you removed the mutex semaphore?</p>
+<p class="viva-a">Multiple workers could write their requests simultaneously, corrupting <code>request[]</code>, <code>request_owner</code>, and the matrices. The manager could read a mix of two workers' data. The allocation and need matrices could be inconsistent, causing wrong safety decisions and potentially granting unsafe allocations.</p>
+
+<p class="viva-q">Q15. How would you extend this to a distributed system?</p>
+<p class="viva-a">Replace shared memory with a message queue or network socket (TCP/UDP). The manager becomes a central server. Workers become clients on different machines. The challenge is distributed deadlock detection — you need a global resource-request graph across nodes. Algorithms like Chandy-Misra-Haas extend Banker's idea to distributed settings. The semaphores would be replaced by distributed locks (e.g., using Redis or ZooKeeper).</p>
+
+<hr style="margin:40px 0;border:1px solid #ddd;">
+<p style="text-align:center;color:#888;font-size:12px;">
+  Deadlock Defender — IPC Engine &nbsp;|&nbsp; CSE323 Operating Systems &nbsp;|&nbsp; C / Linux / POSIX
+</p>
+
+</body>
+</html>
