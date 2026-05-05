@@ -4,33 +4,35 @@
 
 **What is Deadlock?**
 
-Deadlock is a situation where two or more processes are stuck waiting for each other to release resources. None of them can continue, so the system freezes.
+Deadlock is a situation where two or more processes get stuck waiting for each other. Each process holds some resources and waits for other resources that another process has. Since none can proceed, the system freezes completely.
 
 **Why is Deadlock Dangerous?**
 
-In real systems (like银行 servers, operating systems, or database systems), deadlock can:
+In real computer systems (like banking servers, operating systems, or databases), deadlock can:
 - Crash the entire system
-- Stop all services
+- Stop all services and make them unavailable
 - Cause data loss or corruption
+- Require manual restart to recover
 
 **What This Project Does?**
 
-This project shows how to prevent deadlock in a multi-process system. It uses the Banker's Algorithm to check if granting a resource request will keep the system safe. If unsafe, the request is denied.
+This project simulates how to prevent deadlock in a multi-process system. It uses the **Banker's Algorithm** to check if granting a resource request will keep the system in a "safe state." If the system would become unsafe, the request is denied.
 
 ---
 
-## 2. Real Life Example
+## 2. Real-Life Example
 
-Imagine two people, Alice and Bob:
+**The Two Friends Example:**
 
-- Alice has a car and needs a bike
-- Bob has a bike and needs a car
+Imagine two friends, Alice and Bob:
+- Alice has a car and needs a bike to go to the gym
+- Bob has a bike and needs a car to go to work
 
-Both are waiting for each other. Neither can give up what they have. They are stuck forever!
+Both are waiting for each other to give what they need. Neither can give up what they already have. They are stuck forever!
 
-**Another Example - Bank Account Locking:**
+**The Bank Account Example:**
 
-When you transfer money from one account to another, the system locks both accounts. If another process tries to lock them in reverse order, both processes wait forever.
+When you transfer money between two accounts, the system locks both accounts during the transaction. If another process tries to lock these accounts in reverse order (Account B first, then Account A), both processes will wait forever — this is deadlock.
 
 ---
 
@@ -38,11 +40,13 @@ When you transfer money from one account to another, the system locks both accou
 
 This project creates a simple simulation with multiple worker processes:
 
-1. **Multiple processes are created** - Using fork(), we create worker processes
-2. **Each process requests resources** - Workers need resources like memory, files, or locks
-3. **A manager checks whether request is safe** - The manager uses Banker's Algorithm
-4. **If safe → GRANTED** - Resources are given to the worker
-5. **If unsafe → DENIED** - Request is rejected to prevent deadlock
+1. **Multiple processes are created** — Using `fork()`, we create 3 worker processes
+2. **Each process requests resources** — Workers need resources (like memory, locks, or files)
+3. **A manager process checks each request** — The manager uses Banker's Algorithm to decide
+4. **If safe → GRANTED** — Resources are given to the worker
+5. **If unsafe → DENIED** — Request is rejected to prevent deadlock
+
+The manager acts as a safety guard — it only allows requests that keep the system safe.
 
 ---
 
@@ -50,112 +54,272 @@ This project creates a simple simulation with multiple worker processes:
 
 ### fork()
 
-fork() is a system call that creates a new process. The new process (child) gets a copy of the parent's memory. In our project, fork() creates multiple worker processes.
+`fork()` is a system call that creates a new process. The new process (called child) gets a copy of the parent's memory. In this project, `fork()` creates multiple worker processes from the main program.
 
 ### Shared Memory
 
-Shared memory is a way for different processes to share data. We use shmget() to create it and shmat() to attach it. This allows the manager and workers to communicate.
+Shared memory is a way for different processes to share data. We use:
+- `shmget()` — creates shared memory
+- `shmat()` — attaches shared memory to a process
+
+This allows the manager and workers to communicate and share the same system state.
 
 ### Semaphore
 
-A semaphore is like a traffic light for processes. It prevents two processes from updating data at the same time. We use sem_wait() to wait and sem_post() to signal.
+A semaphore is like a traffic light for processes. It prevents two processes from modifying data at the same time:
+- `sem_wait()` — waits (decrements) — like stopping at a red light
+- `sem_post()` — signals (increments) — like turning the light green
+
+This ensures data consistency when multiple processes access shared memory.
 
 ### Banker's Algorithm
 
-Banker's Algorithm is a deadlock prevention method. Before granting any request, it checks: "If I grant this, will the system still be safe?" If yes, grant it. If no, deny it.
+Banker's Algorithm is a deadlock prevention method. Before granting any request, it answers this question:
+
+> "If I grant this request, will there still be a way for ALL processes to finish?"
+
+If **yes** → GRANT the request
+If **no** → DENY the request
+
+This keeps the system in a "safe state" where deadlock cannot occur.
 
 ---
 
-## 5. How the System Works (Step-by-step)
+## 5. How the System Works (Step-by-Step)
 
-1. **Program starts** - Main process initializes everything
-2. **Processes are created** - fork() creates worker processes
-3. **Resources are initialized** - Each process gets initial resources
-4. **Processes send requests** - Workers ask for more resources
-5. **Manager checks using Banker's Algorithm** - Safety is verified
-6. **Decision is made** - Request is GRANTED or DENIED
-7. **System state updates** - Allocation and available resources change
+1. **Program starts** — Main process shows a menu and waits for your choice
+2. **Resources are initialized** — Available resources and worker maximum needs are set
+3. **Worker processes are created** — Using `fork()`, 3 workers are created
+4. **Processes send requests** — Each worker sends a resource request to the manager
+5. **Manager checks request using Banker's Algorithm** — Safety is verified
+6. **Decision is made:**
+   - **GRANTED** — Request is safe, resources are allocated
+   - **DENIED** — Request would cause unsafe state
+7. **System updates state** — Allocation and available resources change
+8. **Workers finish and release resources** — Resources are returned to the system
+9. **Program ends cleanly** — No deadlock occurred in defender mode
 
 ---
 
 ## 6. Modes of Operation
 
-### Vulnerable Mode
+### Vulnerable Mode (Option 1)
 
-- No protection
-- Deadlock may happen
-- Workers can grant their own requests
-- System may freeze (circular wait)
+- **No safety checking** — Workers can grab any resources they want
+- **Deadlock may occur** — Circular wait is possible
+- **No manager oversight** — Workers self-grant their own requests
+- **Use case:** See what happens when there's no protection
 
-### Defender Mode
+### Defender Mode (Option 2)
 
-- Banker's Algorithm is ON
-- Manager checks every request
-- Unsafe requests are denied
-- System runs to completion without deadlock
+- **Banker's Algorithm is ON** — Manager checks every request
+- **Only safe requests are allowed** — Unsafe requests are denied
+- **System runs to completion** — No deadlock can happen
+- **Use case:** See deadlock prevention in action
 
-### Manual Mode
+### Manual Input Mode (Option 3)
 
-- User enters requests manually
-- Can test specific deadlock scenarios
-- Useful for learning
+- **You enter requests manually** — Control which worker makes what request
+- **Banker's Algorithm is still active** — Your requests are checked
+- **Interactive testing** — Learn by experimenting
+- **Use case:** Test specific scenarios and understand the algorithm
 
 ---
 
 ## 7. Example Input and Output
 
-### Example 1:
+### Example 1: Safe Request Granted
 
+**Input:**
 ```
-Worker 1 requests: 1 0 2
-Result: GRANTED (safe)
-```
-
-**Why?** The system has enough resources. After granting, the system remains in a safe state (all processes can finish).
-
-### Example 2:
-
-```
-Worker 2 requests: 3 3 0
-Result: DENIED (exceeds need or unsafe)
+Worker 1 requests: R0=0 R1=1 R2=0
 ```
 
-**Why?** Either the worker needs more than available, or granting this would create an unsafe state that could lead to deadlock.
+**Result:** GRANTED
+
+**Why?**
+- The request is within the worker's maximum need
+- After granting, the system still has enough available resources
+- A safe sequence exists for all workers to finish
+
+### Example 2: Exceeds Maximum Need
+
+**Input:**
+```
+Worker 2 requests: R0=3 R1=3 R2=0
+```
+
+**Result:** DENIED
+
+**Why?**
+- The worker declared a maximum need in advance
+- This request exceeds that declared maximum
+- The system rejects it because the worker lied about its needs
+
+### Example 3: Unsafe State
+
+**Input:**
+```
+Worker 3 requests: R0=1 R1=1 R2=1
+```
+
+**Result:** DENIED
+
+**Why?**
+- Even though resources might be available, granting this would lead to an unsafe state
+- After granting, no safe sequence would exist for all workers to finish
+- The system denies it to prevent future deadlock
 
 ---
 
-## 8. How to Run
+## 8. Why Requests Are DenIED
 
-### Step 1: Compile
+A request can be denied for three reasons:
+
+### Reason 1: Exceeds Declared Maximum Need
+- Each worker declares its maximum resource need at the start
+- If a request exceeds this declared maximum, it's denied
+- This prevents workers from requesting more than they said they would need
+
+### Reason 2: Insufficient Resources Available
+- The system doesn't have enough free resources to grant the request
+- The worker must wait until other workers release resources
+
+### Reason 3: Would Lead to Unsafe State
+- Even if resources are available, granting would create a situation where no safe sequence exists
+- This is the core of Banker's Algorithm — looking ahead to prevent future deadlock
+- The system denies to keep all processes able to finish
+
+---
+
+## 9. Sample Output
+
+Here is what the actual program output looks like in Defender Mode:
+
+```
+╔══════════════════════════════════════════════╗
+║      DEADLOCK DEFENDER — IPC ENGINE          ║
+║  Language : C  |  IPC: shmget + semaphores  ║
+╚══════════════════════════════════════════════╝
+
+Select mode:
+  1) Vulnerable Mode  (no deadlock prevention)
+  2) Defender Mode    (Banker's Algorithm ON)
+  3) Manual Input Mode (interactive requests)
+Choice: 2
+
+[Main] Starting DEFENDER mode...
+
+[Manager] PID=12345 — mode: DEFENDER
+
+┌─────────────────────────────────────────────────┐
+│              SYSTEM STATE                       │
+├──────────┬──────────────┬──────────────┬────────┤
+│ Worker   │ Allocation   │ Max          │ Need   │
+├──────────┼──────────────┼──────────────┼────────┤
+│ W1       │ [0 0 0]      │ [7 7 7]      │ [7 7 7] │
+│ W2       │ [0 0 0]      │ [3 2 2]      │ [3 2 2] │
+│ W3       │ [0 0 0]      │ [2 2 2]      │ [2 2 2] │
+├──────────┴──────────────┴──────────────┴────────┤
+│ Available: R0=10  R1=8   R2=9                  │
+└─────────────────────────────────────────────────┘
+
+[Worker 1] PID=12346 started
+[Worker 1] Requesting R0=0 R1=1 R2=0
+[Manager] Request from Worker 1: R0=0 R1=1 R2=0
+[Manager] Decision: GRANTED — system still SAFE
+[Worker 1] >> GRANTED
+
+[Worker 2] Requesting R0=1 R1=0 R2=0
+[Manager] Decision: GRANTED — system still SAFE
+[Worker 2] >> GRANTED
+
+[Manager] All workers finished. No deadlock occurred.
+```
+
+In **Vulnerable Mode**, you would see:
+```
+[Worker 1] >> self-granted (no check)
+```
+(no safety checking — deadlock may occur)
+
+---
+
+## 10. How to Run
+
+### Step 1: Compile the program
 
 ```bash
 make
 ```
 
-### Step 2: Run
+### Step 2: Run the program
 
 ```bash
 ./deadlock
 ```
 
-For vulnerable mode (may deadlock):
+### Step 3: Choose a mode
 
-```bash
-./deadlock --vulnerable
+When the program starts, it shows a menu:
+
+```
+Select mode:
+  1) Vulnerable Mode  (no deadlock prevention)
+  2) Defender Mode    (Banker's Algorithm ON)
+  3) Manual Input Mode (interactive requests)
+Choice: 
 ```
 
+Type **1**, **2**, or **3** and press Enter.
+
+### Understanding the Results
+
+| Mode | What Happens | Can Deadlock Occur? |
+|------|---------------|---------------------|
+| 1 - Vulnerable | Workers grab resources without checking | Yes |
+| 2 - Defender | Manager checks every request with Banker's Algorithm | No |
+| 3 - Manual | You enter requests, Banker's Algorithm still active | Depends on your input |
+
 ---
 
-## 9. Technologies Used
+## 11. Technologies Used
 
-- **C programming** - Core language
-- **Linux system calls** - fork(), shmget(), shmat()
-- **POSIX Semaphores** - sem_init(), sem_wait(), sem_post()
-- **Banker's Algorithm** - Safety check implementation
+- **C Programming** — Core language used for the entire project
+- **Linux System Calls** — `fork()` for process creation
+- **POSIX Shared Memory** — `shmget()`, `shmat()` for inter-process communication
+- **POSIX Semaphores** — `sem_init()`, `sem_wait()`, `sem_post()` for synchronization
+- **Banker's Algorithm** — Safety check implementation for deadlock avoidance
 
 ---
 
-## 10. Author
+## 12. What I Learned
 
-**Md Atauz Zoha Shafat**
-CSE 323 Operating Systems Project
+Through this project, I gained hands-on experience with:
+
+- **Process Creation** — Using `fork()` to create multiple concurrent processes
+- **Inter-Process Communication (IPC)** — Sharing data between processes using shared memory
+- **Process Synchronization** — Using semaphores to prevent race conditions
+- **Deadlock Avoidance** — Implementing Banker's Algorithm to keep system in safe state
+
+This project helped me understand how operating systems manage resources and prevent deadlock in real-world scenarios.
+
+---
+
+## 13. Future Improvements
+
+Ideas for expanding this project:
+
+- **GUI Version** — Add a graphical interface to visualize the system state in real-time
+- **Logging System** — Record all requests and decisions to a log file for analysis
+- **Visualization** — Show the safe sequence graphically so users can see how Banker's Algorithm works
+- **Dynamic Resources** — Allow adding/removing resources while the program is running
+- **More Workers** — Increase the number of workers to test with larger systems
+
+---
+
+## 14. Author
+
+**Md Atauz Zoha Shafat**  
+CSE 323 — Operating Systems  
+Spring 2026
