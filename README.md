@@ -85,8 +85,7 @@ This keeps the system in a "safe state" where deadlock cannot occur.
 
 ---
 
-## 5. How the System Works (Step-by-Step)
-
+## 5. How the System Works (Step by Step)
 1. **Program starts** — Main process shows a menu and waits for your choice
 2. **Resources are initialized** — Available resources and worker maximum needs are set
 3. **Worker processes are created** — Using `fork()`, 3 workers are created
